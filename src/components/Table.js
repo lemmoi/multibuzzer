@@ -7,6 +7,7 @@ import Header from '../components/Header';
 
 export default function Table(game) {
   const [loaded, setLoaded] = useState(false);
+  const [earlyBuzzTimeoutMs, setEarlyBuzzTimeoutMs] = useState(500);
   const [buzzed, setBuzzer] = useState(
     some(game.G.queue, (o) => o.id === game.playerID)
   );
@@ -81,7 +82,7 @@ export default function Table(game) {
         setTimeout(() => {
           setDisabled(false);
           setLastBuzz(null);
-        }, 2000);
+        }, earlyBuzzTimeoutMs);
       } else {
         playSound();
         setBuzzerText('Buzzed');
@@ -195,6 +196,18 @@ export default function Table(game) {
                 >
                   Reset all buzzers
                 </button>
+              </div>
+              <div className="button-container">
+                <label className="text-button">
+                  Early buzz penalty (ms):
+                  <input
+                    value={earlyBuzzTimeoutMs}
+                    onInput={(e) => setEarlyBuzzTimeoutMs(e.target.value)}
+                    type="number"
+                    min="0"
+                    max="9999"
+                  ></input>
+                </label>
               </div>
               <div className="divider" />
             </div>
