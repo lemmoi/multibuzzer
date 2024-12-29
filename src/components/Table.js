@@ -10,8 +10,10 @@ export default function Table(game) {
   const [buzzed, setBuzzer] = useState(
     some(game.G.queue, (o) => o.id === game.playerID)
   );
+  const [buzzerText, setBuzzerText] = useState('Locked');
   const [lastBuzz, setLastBuzz] = useState(null);
   const [sound, setSound] = useState(false);
+  const [disabled, setDisabled] = useState(false);
   const [soundPlayed, setSoundPlayed] = useState(false);
   const buzzButton = useRef(null);
   const queueRef = useRef(null);
@@ -35,18 +37,20 @@ export default function Table(game) {
   useEffect(() => {
     console.log(game.G.queue, Date.now());
     // reset buzzer based on game
-    if (!game.G.queue[game.playerID]) {
+    if (!game.G.queue[game.playerID] && !disabled) {
       // delay the reset, in case game state hasn't reflected your buzz yet
       if (lastBuzz && Date.now() - lastBuzz < 500) {
         setTimeout(() => {
           const queue = queueRef.current;
           if (queue && !queue[game.playerID]) {
             setBuzzer(false);
+            setBuzzerText('Buzz');
           }
         }, 500);
       } else {
         // immediate reset, if it's been awhile
         setBuzzer(false);
+        setBuzzerText('Buzz');
       }
     }
 
@@ -61,15 +65,30 @@ export default function Table(game) {
       setLoaded(true);
     }
 
+    if (game.G.locked && !buzzed && !disabled) {
+      setBuzzerText('Locked');
+    }
+
     queueRef.current = game.G.queue;
-  }, [game.G.queue]);
+  }, [game.G.queue, game.G.locked, disabled]);
 
   const attemptBuzz = () => {
     if (!buzzed) {
-      playSound();
-      game.moves.buzz(game.playerID);
-      setBuzzer(true);
-      setLastBuzz(Date.now());
+      if (game.G.locked) {
+        setDisabled(true);
+        setBuzzerText('Buzzed too early!');
+        setLastBuzz(Date.now());
+        setTimeout(() => {
+          setDisabled(false);
+          setLastBuzz(null);
+        }, 2000);
+      } else {
+        playSound();
+        setBuzzerText('Buzzed');
+        game.moves.buzz(game.playerID);
+        setBuzzer(true);
+        setLastBuzz(Date.now());
+      }
     }
   };
 
@@ -149,14 +168,14 @@ export default function Table(game) {
           <div id="buzzer">
             <button
               ref={buzzButton}
-              disabled={buzzed || game.G.locked}
+              disabled={buzzed || disabled}
               onClick={() => {
-                if (!buzzed && !game.G.locked) {
+                if (!buzzed && !disabled) {
                   attemptBuzz();
                 }
               }}
             >
-              {game.G.locked ? 'Locked' : buzzed ? 'Buzzed' : 'Buzz'}
+              {buzzerText}
             </button>
           </div>
           {isHost ? (
